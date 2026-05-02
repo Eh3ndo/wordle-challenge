@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wordle Challenge — Scorecard</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #1a5c38;
+    --green-mid: #2d7a4f;
+    --green-light: #4a9b6e;
+    --green-pale: #e8f5ee;
+    --purple: #4b0082;
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --cream: #faf8f2;
+    --cream-dark: #f0ece0;
+    --text-dark: #1a1a1a;
+    --text-mid: #3d3d3d;
+    --red: #8b1a1a;
+  }
+
+  body {
+    background: var(--green);
+    background-image: repeating-linear-gradient(
+      45deg, transparent, transparent 40px,
+      rgba(255,255,255,0.015) 40px, rgba(255,255,255,0.015) 80px
+    );
+    min-height: 100vh;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px;
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  .card {
+    background: var(--cream);
+    max-width: 680px;
+    width: 100%;
+    position: relative;
+    box-shadow:
+      0 0 0 1px var(--gold),
+      0 0 0 6px var(--green),
+      0 0 0 7px var(--gold),
+      0 25px 80px rgba(0,0,0,0.5);
+    animation: fadeIn 0.8s ease both;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card::before, .card::after {
+    content: '';
+    position: absolute;
+    top: 7px; bottom: 7px;
+    width: 5px;
+    background: repeating-linear-gradient(
+      to bottom, var(--green-light), var(--green-light) 4px,
+      var(--green) 4px, var(--green) 8px
+    );
+    opacity: 0.25;
+  }
+  .card::before { left: -12px; }
+  .card::after  { right: -12px; }
+
+  .ribbon-top {
+    background: var(--green);
+    padding: 10px 0 8px;
+    text-align: center;
+    border-bottom: 2px solid var(--gold);
+  }
+  .ribbon-top span {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 0.78rem;
+    letter-spacing: 0.25em;
+    color: var(--gold-light);
+    text-transform: uppercase;
+  }
+
+  .header {
+    background: var(--cream-dark);
+    padding: 30px 48px 22px;
+    text-align: center;
+    border-bottom: 1px solid var(--gold);
+  }
+  .crown { font-size: 1.6rem; line-height: 1; margin-bottom: 4px; }
+  .title-top {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--green-mid);
+    margin-bottom: 4px;
+  }
+  .title-main {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem;
+    font-weight: 900;
+    color: var(--green);
+    line-height: 1;
+  }
+  .title-main em { font-style: italic; color: var(--purple); }
+  .title-sub {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.9rem;
+    font-style: italic;
+    color: var(--gold);
+    margin-top: 6px;
+    letter-spacing: 0.05em;
+  }
+
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 48px; margin: 20px 0 0;
+  }
+  .divider-line { flex: 1; height: 1px; background: var(--gold); opacity: 0.5; }
+  .divider-diamond {
+    width: 8px; height: 8px;
+    background: var(--gold);
+    transform: rotate(45deg); flex-shrink: 0;
+  }
+
+  .body { padding: 0 32px 28px; }
+
+  /* Round meta */
+  .round-meta {
+    display: flex;
+    gap: 16px;
+    margin: 22px 0 24px;
+    align-items: flex-end;
+  }
+  .meta-group { display: flex; flex-direction: column; gap: 4px; }
+  .meta-group.grow { flex: 1; }
+  .meta-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--green-mid);
+    font-weight: 500;
+  }
+  .meta-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--gold);
+    padding: 4px 2px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    color: var(--text-dark);
+    font-style: italic;
+    width: 100%;
+    outline: none;
+  }
+  .meta-input:focus { border-bottom-color: var(--green); }
+
+  /* Section label */
+  .section-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--green-mid);
+    font-weight: 500;
+    text-align: center;
+    margin-bottom: 14px;
+  }
+
+  /* Score grid */
+  .score-grid {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+  }
+
+  .score-grid thead tr {
+    border-bottom: 2px solid var(--gold);
+  }
+  .score-grid thead th {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--green-mid);
+    font-weight: 500;
+    padding: 0 8px 10px;
+    text-align: center;
+  }
+  .score-grid thead th:first-child { text-align: left; padding-left: 0; }
+
+  .score-grid tbody tr {
+    border-bottom: 1px solid rgba(201,168,76,0.2);
+    transition: background 0.15s;
+  }
+  .score-grid tbody tr:hover { background: rgba(26,92,56,0.04); }
+
+  .score-grid tbody td {
+    padding: 10px 8px;
+    text-align: center;
+    vertical-align: middle;
+  }
+  .score-grid tbody td:first-child {
+    text-align: left;
+    padding-left: 0;
+  }
+
+  .player-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    white-space: nowrap;
+  }
+
+  /* Guess selector */
+  .guess-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.4);
+    padding: 5px 10px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    color: var(--text-dark);
+    font-style: italic;
+    width: 70px;
+    text-align: center;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .guess-select:focus, .guess-select:hover {
+    border-color: var(--gold);
+    background: rgba(201,168,76,0.06);
+  }
+  .guess-select.sel-1 { color: var(--green); font-weight: 600; }
+  .guess-select.sel-2 { color: var(--green-mid); }
+  .guess-select.sel-x { color: var(--red); }
+  .guess-select.sel-none { color: var(--red); font-weight: 600; }
+
+  /* Points display */
+  .pts-display {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--green);
+    min-width: 40px;
+    display: inline-block;
+    transition: all 0.2s;
+  }
+  .pts-display.pts-zero { color: var(--red); }
+  .pts-display.pts-neg  { color: var(--red); font-size: 1.1rem; }
+
+  /* Total row */
+  .total-row td {
+    padding-top: 14px !important;
+    border-top: 2px solid var(--gold) !important;
+    border-bottom: none !important;
+  }
+  .total-label {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--green-mid);
+    font-style: italic;
+  }
+  .total-pts {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--green);
+  }
+  .total-pts.pts-neg { color: var(--red); }
+
+  /* Leader badge */
+  .leader-badge {
+    display: inline-block;
+    background: var(--gold);
+    color: #fff;
+    font-family: 'Playfair Display', serif;
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 2px 5px;
+    margin-left: 6px;
+    vertical-align: middle;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .leader-badge.visible { opacity: 1; }
+
+  /* Notes */
+  .notes-area {
+    width: 100%;
+    background: transparent;
+    border: 1px solid rgba(201,168,76,0.35);
+    padding: 10px 12px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.95rem;
+    font-style: italic;
+    color: var(--text-mid);
+    resize: vertical;
+    min-height: 60px;
+    outline: none;
+    margin-top: 6px;
+  }
+  .notes-area:focus { border-color: var(--gold); }
+
+  /* Tally summary */
+  .tally-section {
+    background: var(--cream-dark);
+    border: 1px solid rgba(201,168,76,0.3);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+  }
+  .tally-section .section-label { margin-bottom: 12px; }
+  .tally-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  .tally-cell {
+    text-align: center;
+  }
+  .tally-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--green);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    margin-bottom: 3px;
+  }
+  .tally-total {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--green);
+    line-height: 1;
+  }
+  .tally-total.pts-neg { color: var(--red); }
+  .tally-sub {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    font-style: italic;
+  }
+
+  .footer-divider { margin: 0 0 0; }
+  .footer {
+    padding: 18px 32px 22px;
+    text-align: center;
+  }
+  .footer-note {
+    font-size: 0.82rem;
+    font-style: italic;
+    color: var(--text-mid);
+    line-height: 1.7;
+    font-weight: 300;
+    margin-bottom: 14px;
+  }
+  .footer-crest { font-size: 1.2rem; opacity: 0.5; }
+
+  .ribbon-bottom {
+    background: var(--green);
+    border-top: 2px solid var(--gold);
+    padding: 8px 0 10px;
+    text-align: center;
+  }
+  .ribbon-bottom span {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: var(--gold-light);
+    text-transform: uppercase;
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 22px;
+  }
+  .btn {
+    background: var(--green);
+    color: var(--gold-light);
+    border: 1px solid var(--gold);
+    padding: 5px 12px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.68rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-style: italic;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--green-mid); color: #fff; }
+  .btn-save {
+    background: var(--cream-dark) !important;
+    color: var(--green) !important;
+    border-color: var(--gold) !important;
+  }
+  .btn-save:hover { background: var(--cream) !important; color: var(--green-mid) !important; }
+
+  /* Leaderboard */
+  .leaderboard {
+    margin-bottom: 24px;
+  }
+
+  .lb-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    border: 1px solid rgba(201,168,76,0.2);
+    background: var(--cream-dark);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .lb-row:hover { transform: translateX(3px); }
+
+  .lb-row.rank-1 {
+    background: linear-gradient(135deg, #fffbee 0%, #fdf3ce 100%);
+    border-color: var(--gold);
+    box-shadow: 0 2px 12px rgba(201,168,76,0.2);
+  }
+  .lb-row.rank-2 {
+    background: linear-gradient(135deg, var(--cream-dark) 0%, #e8ede9 100%);
+    border-color: rgba(201,168,76,0.4);
+  }
+  .lb-row.rank-3 {
+    background: linear-gradient(135deg, var(--cream-dark) 0%, #f0ece0 100%);
+    border-color: rgba(201,168,76,0.3);
+  }
+
+  .lb-rank {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    font-weight: 900;
+    min-width: 32px;
+    text-align: center;
+    color: var(--text-mid);
+    line-height: 1;
+  }
+  .lb-row.rank-1 .lb-rank { color: var(--gold); font-size: 1.6rem; }
+  .lb-row.rank-2 .lb-rank { color: #888; }
+  .lb-row.rank-3 .lb-rank { color: #a0764a; }
+
+  .lb-medal {
+    font-size: 1.4rem;
+    min-width: 28px;
+    text-align: center;
+  }
+
+  .lb-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-dark);
+    flex: 1;
+  }
+  .lb-row.rank-1 .lb-name { font-size: 1.15rem; }
+
+  .lb-bar-wrap {
+    flex: 2;
+    height: 6px;
+    background: rgba(201,168,76,0.15);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .lb-bar {
+    height: 100%;
+    background: var(--green-mid);
+    border-radius: 3px;
+    transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  }
+  .lb-row.rank-1 .lb-bar { background: var(--gold); }
+
+  .lb-score {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--green);
+    min-width: 42px;
+    text-align: right;
+  }
+  .lb-row.rank-1 .lb-score { color: var(--gold); font-size: 1.6rem; }
+  .lb-score.pts-neg { color: var(--red); }
+  .lb-pts-label {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.7rem;
+    font-style: italic;
+    color: var(--text-mid);
+    min-width: 22px;
+  }
+
+  .btn-danger {
+    background: var(--red) !important;
+    color: #fff !important;
+    border-color: var(--red) !important;
+  }
+  .btn-danger:hover { background: #6b0000 !important; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-box {
+    background: var(--cream);
+    border: 1px solid var(--gold);
+    box-shadow: 0 0 0 4px var(--green), 0 0 0 5px var(--gold), 0 20px 60px rgba(0,0,0,0.5);
+    padding: 32px 36px;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+  }
+  .modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: var(--red);
+    margin-bottom: 12px;
+  }
+  .modal-body {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    color: var(--text-mid);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+  .modal-input {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--gold);
+    padding: 8px 12px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    color: var(--text-dark);
+    text-align: center;
+    letter-spacing: 0.1em;
+    outline: none;
+    margin-bottom: 20px;
+  }
+  .modal-input:focus { border-color: var(--green); }
+  .modal-btns { display: flex; gap: 12px; justify-content: center; }
+
+  @media print {
+    @page { size: A4 portrait; margin: 8mm; }
+    html, body {
+      background: white !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      height: 100%;
+    }
+    body { display: block !important; }
+    .card {
+      box-shadow: none !important;
+      border: 1px solid #c9a84c;
+      max-width: 100% !important;
+      width: 100% !important;
+      page-break-inside: avoid;
+    }
+    .card::before, .card::after { display: none !important; }
+    .btn-row { display: none !important; }
+    .modal-overlay { display: none !important; }
+    .editor-bar { display: none !important; }
+    .notes-area { border: 1px solid #c9a84c !important; min-height: 50px !important; font-size: 0.85rem !important; padding: 8px !important; }
+    .header { padding: 14px 32px 10px !important; }
+    .crown { font-size: 1.1rem !important; }
+    .title-main { font-size: 1.7rem !important; }
+    .title-sub { font-size: 0.7rem !important; margin-top: 3px !important; }
+    .title-top { font-size: 0.55rem !important; }
+    .divider { margin: 10px 0 0 !important; padding: 0 32px !important; }
+    .body { padding: 0 24px 14px !important; }
+    .round-meta { margin: 12px 0 14px !important; }
+    .score-grid { margin-bottom: 12px !important; }
+    .score-grid tbody td { padding: 7px 6px !important; }
+    .lb-row { padding: 7px 10px !important; margin-bottom: 4px !important; }
+    .lb-score { font-size: 1.1rem !important; }
+    .lb-row.rank-1 .lb-score { font-size: 1.2rem !important; }
+    .section-label { margin-bottom: 8px !important; }
+    .footer { padding: 10px 24px 14px !important; }
+    .footer-note { font-size: 0.72rem !important; }
+    .ribbon-top, .ribbon-bottom { padding: 6px 0 !important; }
+    .guess-select { border: none !important; background: transparent !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <div class="ribbon-top">
+    <span>Official Scorecard</span>
+  </div>
+
+  <div class="header">
+    <div class="crown">👑</div>
+    <div class="title-top">The</div>
+    <div class="title-main">Wordle <em>Challenge</em></div>
+    <div class="title-sub">Scorecard &amp; Record of Play</div>
+  </div>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+    <div class="divider-diamond"></div>
+    <div class="divider-line"></div>
+    <div class="divider-diamond"></div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="body">
+
+    <!-- Round meta -->
+    <div class="round-meta">
+      <div class="meta-group grow">
+        <div class="meta-label">Round / Date</div>
+        <input class="meta-input" type="text" placeholder="e.g. Round 7 · May 2026" id="roundName">
+      </div>
+      <div class="meta-group">
+        <div class="meta-label">Wordle #</div>
+        <input class="meta-input" type="text" placeholder="e.g. 1412" style="width:90px" id="wordleNum">
+      </div>
+      <div class="meta-group">
+        <div class="meta-label">The Word</div>
+        <input class="meta-input" type="text" placeholder="Reveal later..." style="width:110px;text-transform:uppercase" id="wordleWord">
+      </div>
+    </div>
+
+    <table class="score-grid" id="scoreTable">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>Guesses</th>
+          <th>Points</th>
+        </tr>
+      </thead>
+      <tbody id="scoreBody">
+      </tbody>
+    </table>
+
+    <!-- Leaderboard -->
+    <div class="section-label">Leaderboard</div>
+    <div class="leaderboard" id="leaderboard"></div>
+
+    <!-- Notes -->
+    <div class="section-label">Notes &amp; Commentary</div>
+    <textarea class="notes-area" placeholder="Record notable moments, grudges, celebrations..."></textarea>
+
+    <div style="height:20px"></div>
+
+    <div class="btn-row">
+      <button class="btn" onclick="showResetModal('round')">↺ Save &amp; Next Round</button>
+      <button class="btn btn-danger" onclick="showResetModal('all')">⚠ Reset All Totals</button>
+      <button class="btn" onclick="window.print()">⎙ Print</button>
+    </div>
+    <div class="btn-row" style="margin-top:6px">
+      <button class="btn btn-save" onclick="saveToSheet()">☁ Save to Sheet</button>
+      <button class="btn btn-save" onclick="loadFromSheet()">☁ Load from Sheet</button>
+    </div>
+
+    <!-- Reset Modal -->
+    <div id="resetModal" class="modal-overlay" style="display:none">
+      <div class="modal-box">
+        <div class="modal-title" id="modalTitle">Reset All Totals</div>
+        <p class="modal-body" id="modalBody">This will permanently erase all scores. Type <strong>RESET</strong> below to confirm.</p>
+        <input class="modal-input" id="modalInput" type="text" placeholder="Type RESET to confirm" autocomplete="off">
+        <div class="modal-btns">
+          <button class="btn" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-danger" id="modalConfirmBtn" onclick="confirmModal()" disabled>Confirm</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="divider footer-divider" style="margin:0 32px">
+    <div class="divider-line"></div>
+    <div class="divider-diamond"></div>
+    <div class="divider-line"></div>
+    <div class="divider-diamond"></div>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="footer">
+    <p class="footer-note">
+      Results must be submitted by the agreed deadline.<br>
+      No submission results in a one point deduction.
+    </p>
+    <div class="footer-crest">🟩 ⬜ 🟨 🟩 ⬜</div>
+  </div>
+
+  <div class="ribbon-bottom">
+    <span>Play Well &nbsp;·&nbsp; Play Fair &nbsp;·&nbsp; Play Daily</span>
+  </div>
+
+</div>
+
+<script>
+const PLAYERS = ['Angelika', 'Robyn', 'Ethan', 'Sean McD', 'Sean C'];
+
+const POINTS_MAP = { '1': 6, '2': 5, '3': 4, '4': 3, '5': 2, '6': 1, 'X': 0, '-': -1 };
+
+function loadTotals() {
+  try {
+    const saved = localStorage.getItem('wc_totals');
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  const t = {};
+  PLAYERS.forEach(p => t[p] = 0);
+  return t;
+}
+
+function saveTotals(totals) {
+  try { localStorage.setItem('wc_totals', JSON.stringify(totals)); } catch(e) {}
+}
+
+let cumulativeTotals = loadTotals();
+
+function getPoints(val) {
+  return POINTS_MAP[val] !== undefined ? POINTS_MAP[val] : null;
+}
+
+function getCurrentScores() {
+  return PLAYERS.map((name, i) => {
+    const sel = document.getElementById(`guess-${i}`);
+    const roundPts = sel ? (getPoints(sel.value) !== null ? getPoints(sel.value) : 0) : 0;
+    return { name, index: i, total: cumulativeTotals[name] + roundPts };
+  });
+}
+
+
+
+function buildLeaderboard() {
+  const lb = document.getElementById('leaderboard');
+  if (!lb) return;
+  const medals = ['🥇', '🥈', '🥉', '', ''];
+  const scores = getCurrentScores().sort((a, b) => b.total - a.total);
+  const max = scores[0].total > 0 ? scores[0].total : 1;
+  lb.innerHTML = '';
+  scores.forEach((s, rank) => {
+    const barPct = max > 0 ? Math.max(0, (s.total / max) * 100) : 0;
+    const row = document.createElement('div');
+    row.className = `lb-row rank-${rank + 1}`;
+    row.innerHTML = `
+      <div class="lb-rank">${rank + 1}</div>
+      <div class="lb-medal">${medals[rank] || ''}</div>
+      <div class="lb-name">${s.name}</div>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:${barPct}%"></div></div>
+      <div class="lb-score ${s.total < 0 ? 'pts-neg' : ''}">${s.total}</div>
+      <div class="lb-pts-label">pts</div>
+    `;
+    lb.appendChild(row);
+  });
+}
+
+function buildTable() {
+  const tbody = document.getElementById('scoreBody');
+  tbody.innerHTML = '';
+  PLAYERS.forEach((name, i) => {
+    const tr = document.createElement('tr');
+
+    const nameTd = document.createElement('td');
+    nameTd.innerHTML = `<span class="player-name">${name}<span class="leader-badge" id="badge-${i}">Champion</span></span>`;
+    tr.appendChild(nameTd);
+
+    const guessTd = document.createElement('td');
+    const sel = document.createElement('select');
+    sel.className = 'guess-select';
+    sel.id = `guess-${i}`;
+    [{val:'',label:'—'},{val:'1',label:'1 ⭐'},{val:'2',label:'2'},{val:'3',label:'3'},
+     {val:'4',label:'4'},{val:'5',label:'5'},{val:'6',label:'6'},{val:'X',label:'X'},{val:'-',label:'DNS'}]
+    .forEach(o => {
+      const opt = document.createElement('option');
+      opt.value = o.val; opt.textContent = o.label;
+      sel.appendChild(opt);
+    });
+    sel.addEventListener('change', () => updateRow(i));
+    guessTd.appendChild(sel);
+    tr.appendChild(guessTd);
+
+    const ptsTd = document.createElement('td');
+    ptsTd.innerHTML = `<span class="pts-display" id="pts-${i}">—</span>`;
+    tr.appendChild(ptsTd);
+
+    tbody.appendChild(tr);
+  });
+  refreshAll();
+}
+
+function updateRow(i) {
+  const sel = document.getElementById(`guess-${i}`);
+  const val = sel.value;
+  const ptEl = document.getElementById(`pts-${i}`);
+
+  sel.className = 'guess-select';
+  if (val === '1') sel.classList.add('sel-1');
+  else if (val === '2') sel.classList.add('sel-2');
+  else if (val === 'X') sel.classList.add('sel-x');
+  else if (val === '-') sel.classList.add('sel-none');
+
+  const pts = getPoints(val);
+  if (pts === null) {
+    ptEl.textContent = '—';
+    ptEl.className = 'pts-display';
+  } else {
+    ptEl.textContent = pts;
+    ptEl.className = 'pts-display' + (pts < 0 ? ' pts-neg' : pts === 0 ? ' pts-zero' : '');
+  }
+  refreshAll();
+}
+
+function refreshAll() {
+  const scores = getCurrentScores();
+  const max = Math.max(...scores.map(s => s.total));
+
+  scores.forEach(s => {
+    const badge = document.getElementById(`badge-${s.index}`);
+    if (badge) badge.classList.toggle('visible', s.total === max && max > 0);
+  });
+
+  buildLeaderboard();
+}
+
+let pendingResetType = null;
+
+function showResetModal(type) {
+  pendingResetType = type;
+  const modal = document.getElementById('resetModal');
+  const input = document.getElementById('modalInput');
+  const confirmBtn = document.getElementById('modalConfirmBtn');
+  const title = document.getElementById('modalTitle');
+  const body = document.getElementById('modalBody');
+  if (type === 'round') {
+    title.textContent = 'Save & Start Next Round';
+    title.style.color = 'var(--green)';
+    body.innerHTML = 'This will bank this round\'s scores and clear the form. Type <strong>RESET</strong> to confirm.';
+  } else {
+    title.textContent = '⚠ Reset All Totals';
+    title.style.color = 'var(--red)';
+    body.innerHTML = 'This will permanently wipe <strong>all scores</strong> for everyone. Type <strong>RESET</strong> to confirm.';
+  }
+  input.value = '';
+  confirmBtn.disabled = true;
+  modal.style.display = 'flex';
+  setTimeout(() => input.focus(), 50);
+}
+
+function closeModal() {
+  document.getElementById('resetModal').style.display = 'none';
+  pendingResetType = null;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('modalInput').addEventListener('input', function() {
+    document.getElementById('modalConfirmBtn').disabled = this.value.trim().toUpperCase() !== 'RESET';
+  });
+  document.getElementById('resetModal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+});
+
+function confirmModal() {
+  if (pendingResetType === 'round') {
+    PLAYERS.forEach((name, i) => {
+      const sel = document.getElementById(`guess-${i}`);
+      const pts = sel ? getPoints(sel.value) : null;
+      if (pts !== null) cumulativeTotals[name] += pts;
+    });
+    saveTotals(cumulativeTotals);
+    PLAYERS.forEach((_, i) => {
+      const sel = document.getElementById(`guess-${i}`);
+      if (sel) { sel.value = ''; sel.className = 'guess-select'; }
+      const ptEl = document.getElementById(`pts-${i}`);
+      if (ptEl) { ptEl.textContent = '—'; ptEl.className = 'pts-display'; }
+    });
+    document.getElementById('roundName').value = '';
+    document.getElementById('wordleNum').value = '';
+    document.getElementById('wordleWord').value = '';
+  } else {
+    PLAYERS.forEach(name => cumulativeTotals[name] = 0);
+    saveTotals(cumulativeTotals);
+    PLAYERS.forEach((_, i) => {
+      const sel = document.getElementById(`guess-${i}`);
+      if (sel) { sel.value = ''; sel.className = 'guess-select'; }
+      const ptEl = document.getElementById(`pts-${i}`);
+      if (ptEl) { ptEl.textContent = '—'; ptEl.className = 'pts-display'; }
+    });
+    document.getElementById('roundName').value = '';
+    document.getElementById('wordleNum').value = '';
+    document.getElementById('wordleWord').value = '';
+  }
+  closeModal();
+  refreshAll();
+}
+
+// ---- Google Sheets sync ----
+// Paste your Google Apps Script Web App URL below
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbz52x04YprPbRHr9yfM1fS4Lc20qcnYDyaY6ZVcUsYbbY1w5crvct8zNqLKh8If0L_k/exec';
+
+function saveToSheet() {
+  if (SHEET_URL === 'YOUR_SCRIPT_URL_HERE') {
+    alert('Please add your Google Apps Script URL first — see setup instructions.');
+    return;
+  }
+  const btn = event.target;
+  btn.textContent = '⏳ Saving…';
+  btn.disabled = true;
+  fetch(SHEET_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'save', totals: cumulativeTotals })
+  })
+  .then(() => {
+    btn.textContent = '✓ Saved!';
+    setTimeout(() => { btn.textContent = '☁ Save to Sheet'; btn.disabled = false; }, 2000);
+  })
+  .catch(() => {
+    btn.textContent = '✗ Failed';
+    setTimeout(() => { btn.textContent = '☁ Save to Sheet'; btn.disabled = false; }, 2000);
+  });
+}
+
+function loadFromSheet() {
+  if (SHEET_URL === 'YOUR_SCRIPT_URL_HERE') {
+    alert('Please add your Google Apps Script URL first — see setup instructions.');
+    return;
+  }
+  const btn = event.target;
+  btn.textContent = '⏳ Loading…';
+  btn.disabled = true;
+  fetch(SHEET_URL + '?action=load')
+  .then(r => r.json())
+  .then(data => {
+    if (!data.totals) throw new Error('No data');
+    const valid = PLAYERS.every(p => data.totals[p] !== undefined);
+    if (!valid) throw new Error('Player mismatch');
+    cumulativeTotals = data.totals;
+    saveTotals(cumulativeTotals);
+    refreshAll();
+    btn.textContent = '✓ Loaded!';
+    setTimeout(() => { btn.textContent = '☁ Load from Sheet'; btn.disabled = false; }, 2000);
+  })
+  .catch(() => {
+    btn.textContent = '✗ Failed';
+    alert('Could not load scores. Check your Script URL and try again.');
+    setTimeout(() => { btn.textContent = '☁ Load from Sheet'; btn.disabled = false; }, 2000);
+  });
+}
+
+// Init
+buildTable();
+</script>
+</body>
+</html>

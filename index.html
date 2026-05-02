@@ -654,13 +654,11 @@
 
   <div class="body">
 
-    <!-- Editor unlock -->
-    <div class="editor-bar">
-      <span class="editor-label">Editor</span>
-      <input type="password" id="pwInput" placeholder="Enter password to edit…" onkeydown="if(event.key==='Enter')tryUnlock()">
-      <button onclick="tryUnlock()" class="btn">Unlock</button>
+    <!-- Refresh button (top) -->
+    <div id="viewerButtons" class="btn-row" style="margin-top:18px;margin-bottom:0">
+      <button class="btn btn-save" onclick="loadFromSheet()">☁ Refresh Scores</button>
     </div>
-    <div class="editor-status" id="editorStatus">👁 Viewing only — enter password to edit</div>
+    <div class="editor-status" id="editorStatus">👁 Viewing only</div>
 
     <!-- Round meta -->
     <div class="round-meta">
@@ -712,8 +710,10 @@
     </div>
     </div>
 
-    <div id="viewerButtons" class="btn-row">
-      <button class="btn btn-save" onclick="loadFromSheet()">☁ Refresh Scores</button>
+    <div id="viewerEditor" class="editor-bar">
+      <span class="editor-label">Editor</span>
+      <input type="password" id="pwInput" placeholder="Enter password to edit…" onkeydown="if(event.key==='Enter')tryUnlock()">
+      <button onclick="tryUnlock()" class="btn">Unlock</button>
     </div>
 
     <!-- Reset Modal -->
@@ -767,16 +767,16 @@ function tryUnlock() {
     status.textContent = '✏️ Editor mode unlocked';
     status.className = 'editor-status is-editor';
     document.getElementById('editorButtons').style.display = 'block';
-    document.getElementById('viewerButtons').style.display = 'none';
+    document.getElementById('viewerEditor').style.display = 'none';
+    document.getElementById('viewerButtons') && (document.getElementById('viewerButtons').style.display = 'none');
     // Enable all inputs
     document.querySelectorAll('.meta-input, .notes-area, .guess-select').forEach(el => el.disabled = false);
     input.value = '';
-    document.querySelector('.editor-bar').style.display = 'none';
   } else {
     status.textContent = '❌ Wrong password';
     status.className = 'editor-status is-error';
     setTimeout(() => {
-      status.textContent = '👁 Viewing only — enter password to edit';
+      status.textContent = '👁 Viewing only';
       status.className = 'editor-status';
     }, 2000);
     input.value = '';

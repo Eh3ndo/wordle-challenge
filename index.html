@@ -385,6 +385,25 @@
     text-transform: uppercase;
   }
 
+  /* Editor bar */
+  .editor-bar {
+    display: flex; align-items: center; gap: 10px;
+    margin: 18px 0 0; padding: 10px 14px;
+    background: var(--cream-dark); border: 1px solid rgba(201,168,76,0.3);
+  }
+  .editor-bar input {
+    flex:1; background:transparent; border:none; border-bottom:1px solid var(--gold);
+    padding:4px 2px; font-family:'Cormorant Garamond',serif; font-size:0.95rem;
+    font-style:italic; color:var(--text-dark); outline:none;
+  }
+  .editor-bar button {
+    padding: 5px 14px !important;
+  }
+  .editor-label { font-size:0.6rem; letter-spacing:0.3em; text-transform:uppercase; color:var(--green-mid); white-space:nowrap; }
+  .editor-status { font-size:0.75rem; font-style:italic; color:var(--green-mid); margin-top:8px; text-align:center; }
+  .editor-status.is-editor { color:var(--gold); font-weight:600; }
+  .editor-status.is-error { color: var(--red); }
+
   /* Buttons */
   .btn-row {
     display: flex;
@@ -587,6 +606,7 @@
     .btn-row { display: none !important; }
     .modal-overlay { display: none !important; }
     .editor-bar { display: none !important; }
+    .editor-status { display: none !important; }
     .notes-area { border: 1px solid #c9a84c !important; min-height: 50px !important; font-size: 0.85rem !important; padding: 8px !important; }
     .header { padding: 14px 32px 10px !important; }
     .crown { font-size: 1.1rem !important; }
@@ -634,6 +654,14 @@
 
   <div class="body">
 
+    <!-- Editor unlock -->
+    <div class="editor-bar">
+      <span class="editor-label">Editor</span>
+      <input type="password" id="pwInput" placeholder="Enter password to edit…" onkeydown="if(event.key==='Enter')tryUnlock()">
+      <button onclick="tryUnlock()" class="btn">Unlock</button>
+    </div>
+    <div class="editor-status" id="editorStatus">👁 Viewing only — enter password to edit</div>
+
     <!-- Round meta -->
     <div class="round-meta">
       <div class="meta-group grow">
@@ -672,6 +700,7 @@
 
     <div style="height:20px"></div>
 
+    <div id="editorButtons" style="display:none">
     <div class="btn-row">
       <button class="btn" onclick="showResetModal('round')">↺ Save &amp; Next Round</button>
       <button class="btn btn-danger" onclick="showResetModal('all')">⚠ Reset All Totals</button>
@@ -680,6 +709,11 @@
     <div class="btn-row" style="margin-top:6px">
       <button class="btn btn-save" onclick="saveToSheet()">☁ Save to Sheet</button>
       <button class="btn btn-save" onclick="loadFromSheet()">☁ Load from Sheet</button>
+    </div>
+    </div>
+
+    <div id="viewerButtons" class="btn-row">
+      <button class="btn btn-save" onclick="loadFromSheet()">☁ Refresh Scores</button>
     </div>
 
     <!-- Reset Modal -->
@@ -721,8 +755,37 @@
 
 <script>
 const PLAYERS = ['Angelika', 'Robyn', 'Ethan', 'Sean McD', 'Sean C'];
-
 const POINTS_MAP = { '1': 6, '2': 5, '3': 4, '4': 3, '5': 2, '6': 1, 'X': 0, '-': -1 };
+const EDITOR_PASSWORD = 'LUCKY';
+let isEditor = false;
+
+function tryUnlock() {
+  const input = document.getElementById('pwInput');
+  const status = document.getElementById('editorStatus');
+  if (input.value === EDITOR_PASSWORD) {
+    isEditor = true;
+    status.textContent = '✏️ Editor mode unlocked';
+    status.className = 'editor-status is-editor';
+    document.getElementById('editorButtons').style.display = 'block';
+    document.getElementById('viewerButtons').style.display = 'none';
+    // Enable all inputs
+    document.querySelectorAll('.meta-input, .notes-area, .guess-select').forEach(el => el.disabled = false);
+    input.value = '';
+    document.querySelector('.editor-bar').style.display = 'none';
+  } else {
+    status.textContent = '❌ Wrong password';
+    status.className = 'editor-status is-error';
+    setTimeout(() => {
+      status.textContent = '👁 Viewing only — enter password to edit';
+      status.className = 'editor-status';
+    }, 2000);
+    input.value = '';
+  }
+}
+
+function lockAll() {
+  document.querySelectorAll('.meta-input, .notes-area, .guess-select').forEach(el => el.disabled = true);
+}
 
 function loadTotals() {
   try {
@@ -831,6 +894,7 @@ function updateRow(i) {
     ptEl.className = 'pts-display' + (pts < 0 ? ' pts-neg' : pts === 0 ? ' pts-zero' : '');
   }
   refreshAll();
+  silentSaveToSheet();
 }
 
 function refreshAll() {
@@ -915,17 +979,73 @@ function confirmModal() {
   }
   closeModal();
   refreshAll();
+  silentSaveToSheet();
 }
 
-// ---- Google Sheets sync ----
-// Paste your Google Apps Script Web App URL below
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbz52x04YprPbRHr9yfM1fS4Lc20qcnYDyaY6ZVcUsYbbY1w5crvct8zNqLKh8If0L_k/exec';
+// ---- Google Sheets sync (full state + live refresh) ----
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbxtBm-4XU_xMJ6sEvsVuxmh8cZUYYwy1KKAWcSPFgah_EE9SDg2mp-r6xRU4ELW6QRl/exec';
+
+function getCurrentState() {
+  const guesses = {};
+  PLAYERS.forEach((name, i) => {
+    const sel = document.getElementById(`guess-${i}`);
+    guesses[name] = sel ? sel.value : '';
+  });
+  return {
+    totals: cumulativeTotals,
+    guesses,
+    round: document.getElementById('roundName').value,
+    wordleNum: document.getElementById('wordleNum').value,
+    wordleWord: document.getElementById('wordleWord').value,
+    notes: document.querySelector('.notes-area').value
+  };
+}
+
+function applyState(state) {
+  if (!state) return;
+  // Don't clobber the editor's input while they're typing
+  if (!isEditor) {
+    if (state.totals) cumulativeTotals = state.totals;
+    document.getElementById('roundName').value = state.round || '';
+    document.getElementById('wordleNum').value = state.wordleNum || '';
+    document.getElementById('wordleWord').value = state.wordleWord || '';
+    document.querySelector('.notes-area').value = state.notes || '';
+    if (state.guesses) {
+      PLAYERS.forEach((name, i) => {
+        const sel = document.getElementById(`guess-${i}`);
+        if (sel) {
+          sel.value = state.guesses[name] || '';
+          updateRow(i);
+        }
+      });
+    }
+    saveTotals(cumulativeTotals);
+    refreshAll();
+  } else {
+    // For editor, only sync totals if they don't differ
+    if (state.totals) {
+      cumulativeTotals = state.totals;
+      saveTotals(cumulativeTotals);
+      refreshAll();
+    }
+  }
+}
+
+let saveTimer;
+function silentSaveToSheet() {
+  if (!isEditor) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    fetch(SHEET_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'save', state: getCurrentState() })
+    }).catch(() => {});
+  }, 500);
+}
 
 function saveToSheet() {
-  if (SHEET_URL === 'YOUR_SCRIPT_URL_HERE') {
-    alert('Please add your Google Apps Script URL first — see setup instructions.');
-    return;
-  }
   const btn = event.target;
   btn.textContent = '⏳ Saving…';
   btn.disabled = true;
@@ -933,7 +1053,7 @@ function saveToSheet() {
     method: 'POST',
     mode: 'no-cors',
     headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify({ action: 'save', totals: cumulativeTotals })
+    body: JSON.stringify({ action: 'save', state: getCurrentState() })
   })
   .then(() => {
     btn.textContent = '✓ Saved!';
@@ -946,34 +1066,53 @@ function saveToSheet() {
 }
 
 function loadFromSheet() {
-  if (SHEET_URL === 'YOUR_SCRIPT_URL_HERE') {
-    alert('Please add your Google Apps Script URL first — see setup instructions.');
-    return;
-  }
   const btn = event.target;
   btn.textContent = '⏳ Loading…';
   btn.disabled = true;
   fetch(SHEET_URL + '?action=load')
   .then(r => r.json())
   .then(data => {
-    if (!data.totals) throw new Error('No data');
-    const valid = PLAYERS.every(p => data.totals[p] !== undefined);
-    if (!valid) throw new Error('Player mismatch');
-    cumulativeTotals = data.totals;
-    saveTotals(cumulativeTotals);
-    refreshAll();
+    applyState(data);
     btn.textContent = '✓ Loaded!';
-    setTimeout(() => { btn.textContent = '☁ Load from Sheet'; btn.disabled = false; }, 2000);
+    setTimeout(() => {
+      btn.textContent = isEditor ? '☁ Load from Sheet' : '☁ Refresh Scores';
+      btn.disabled = false;
+    }, 2000);
   })
   .catch(() => {
     btn.textContent = '✗ Failed';
     alert('Could not load scores. Check your Script URL and try again.');
-    setTimeout(() => { btn.textContent = '☁ Load from Sheet'; btn.disabled = false; }, 2000);
+    setTimeout(() => {
+      btn.textContent = isEditor ? '☁ Load from Sheet' : '☁ Refresh Scores';
+      btn.disabled = false;
+    }, 2000);
   });
 }
 
+function loadFromSheetSilent() {
+  fetch(SHEET_URL + '?action=load')
+    .then(r => r.json())
+    .then(data => applyState(data))
+    .catch(() => {});
+}
+
+// Auto-refresh for viewers every 5 seconds
+setInterval(() => {
+  if (!isEditor) loadFromSheetSilent();
+}, 5000);
+
 // Init
 buildTable();
+lockAll();
+loadFromSheetSilent();
+
+// Wire up silent save on meta and notes changes
+['roundName','wordleNum','wordleWord'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', silentSaveToSheet);
+});
+const notesEl = document.querySelector('.notes-area');
+if (notesEl) notesEl.addEventListener('input', silentSaveToSheet);
 </script>
 </body>
 </html>
